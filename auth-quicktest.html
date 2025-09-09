@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Firebase Quick Test (Hardcoded Config)</title>
+  <style>
+    body{font-family:system-ui,Segoe UI,Roboto,Arial,sans-serif;background:#0f1115;color:#e6e9f2;margin:0;padding:24px}
+    .card{max-width:720px;margin:0 auto;background:#171923;border:1px solid #293047;border-radius:14px;padding:18px}
+    h1{margin:0 0 12px} .muted{color:#8b93a7}
+    button{border:0;border-radius:10px;background:#4f7cff;color:#fff;padding:10px 14px;cursor:pointer}
+    pre{white-space:pre-wrap;background:#11131a;border:1px solid #293047;border-radius:10px;padding:10px}
+    .ok{color:#18c964} .err{color:#ff5b5b}
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>Firebase Quick Test</h1>
+    <p class="muted">This file hardcodes your config. Serve it over <code>http://localhost</code> (not file://). Click “Init” then “Sign Up” to create a throwaway test user.</p>
+    <div>
+      <button id="initBtn">Init</button>
+      <span id="status" class="muted">SDK not loaded</span>
+    </div>
+    <hr>
+    <div>
+      <h3>Auth</h3>
+      <label>Email</label>
+      <input id="email" type="email" placeholder="you@example.com" style="width:100%;padding:8px;border-radius:8px;border:1px solid #293047;background:#11131a;color:#e6e9f2">
+      <label>Password</label>
+      <input id="pwd" type="password" placeholder="Temp!234" style="width:100%;padding:8px;border-radius:8px;border:1px solid #293047;background:#11131a;color:#e6e9f2">
+      <div style="display:flex;gap:10px;margin-top:10px">
+        <button id="signupBtn">Sign Up</button>
+        <button id="signinBtn">Sign In</button>
+        <button id="signoutBtn">Sign Out</button>
+      </div>
+    </div>
+    <hr>
+    <div>
+      <h3>Logs</h3>
+      <pre id="log"></pre>
+    </div>
+  </div>
+
+  <script type="module">
+    const cfg = {
+      "apiKey": "AIzaSyAqK0GGYt1aBwbeDZxSKzs1eYCXY9T0dDs",
+      "authDomain": "marlow-media-test-calendar.firebaseapp.com",
+      "projectId": "marlow-media-test-calendar",
+      "storageBucket": "marlow-media-test-calendar.firebasestorage.app",
+      "messagingSenderId": "29459482845",
+      "appId": "1:29459482845:web:3bb7652a36fa20e43c7334"
+    };
+
+    const $ = (id)=>document.getElementById(id);
+    const log = (m, cls) => {
+      const el=$('log');
+      const line = document.createElement('div');
+      if(cls) line.className = cls;
+      line.textContent = m;
+      el.appendChild(line);
+      console.log(m);
+    };
+
+    let app, auth;
+    $('initBtn').onclick = async () => {
+      try {
+        // IMPORTANT: must be served from http:// or https:// (not file://) or module imports will fail silently on some systems
+        const { initializeApp } = await import('https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js');
+        const modAuth = await import('https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js');
+        app = initializeApp(cfg);
+        auth = modAuth.getAuth(app);
+        await modAuth.setPersistence(auth, modAuth.browserLocalPersistence);
+        modAuth.onAuthStateChanged(auth, (user) => {
+          if (user) {
+            $('status').textContent = 'Signed in ✔ ' + (user.email || '');
+            $('status').className = 'ok';
+            log('Auth state: signed in as ' + (user.email || user.uid));
+          } else {
+            $('status').textContent = 'Initialized ✔ (not signed in)';
+            $('status').className = 'ok';
+            log('Auth state: signed out');
+          }
+        });
+        $('status').textContent = 'SDK loaded ✔';
+        $('status').className = 'ok';
+        log('Initialized Firebase SDK');
+      } catch (e) {
+        $('status').textContent = e?.message || String(e);
+        $('status').className = 'err';
+        log('Init error: ' + (e?.stack || e), 'err');
+      }
+    };
+
+    document.getElementById('signupBtn').onclick = async () => {
+      try {
+        const { createUserWithEmailAndPassword } = await import('https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js');
+        const userCred = await createUserWithEmailAndPassword(auth, $('email').value, $('pwd').value);
+        log('Signed up: ' + userCred.user.uid);
+      } catch (e) {
+        log('Sign up error: ' + e.message, 'err');
+      }
+    };
+
+    document.getElementById('signinBtn').onclick = async () => {
+      try {
+        const { signInWithEmailAndPassword } = await import('https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js');
+        const userCred = await signInWithEmailAndPassword(auth, $('email').value, $('pwd').value);
+        log('Signed in: ' + userCred.user.uid);
+      } catch (e) {
+        log('Sign in error: ' + e.message, 'err');
+      }
+    };
+
+    document.getElementById('signoutBtn').onclick = async () => {
+      try {
+        const { signOut } = await import('https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js');
+        await signOut(auth);
+        log('Signed out');
+      } catch (e) {
+        log('Sign out error: ' + e.message, 'err');
+      }
+    };
+  </script>
+</body>
+</html>
